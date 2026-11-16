@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sourdough Peak Predictor (White Flour)</title>
+  <!-- Fixed CDN link for Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; color: #222; }
+    .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; background: #f4f4f6; padding: 1.2rem; border-radius: 8px; margin-bottom: 1.5rem; }
+    label { display: flex; flex-direction: column; font-size: 0.9rem; font-weight: 600; }
+    input { margin-top: 0.4rem; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
+    .summary { background: #e8f4fd; border-left: 4px solid #0077cc; padding: 1rem; margin-bottom: 1.5rem; border-radius: 4px; }
+    canvas { max-height: 400px; }
+  </style>
+</head>
+<body>
+
+  <h2>Sourdough Activity & Peak Forecaster</h2>
+  <p>Calibrated for <strong>100% white bread flour</strong> and <strong>ambient room temperature</strong>.</p>
+
+  <div class="controls">
+    <label>Mother (g) <input type="number" id="mother" value="20" min="1"></label>
+    <label>Water (g) <input type="number" id="water" value="100" min="1"></label>
+    <label>Flour (g) <input type="number" id="flour" value="100" min="1"></label>
+    <label>Ambient Temp (°C) <input type="number" id="temp" value="23" min="10" max="40" step="0.5"></label>
+    <label>Calibration Multiplier <input type="number" id="cal" value="1.0" min="0.5" max="2.0" step="0.05"></label>
+  </div>
+
+  <div class="summary" id="summary"></div>
+  <canvas id="fermentChart"></canvas>
+
+  <script>
+    let chart;
+
+    function calculateCurves() {
+      const mother = parseFloat(document.getElementById('mother').value) || 1;
+      const water = parseFloat(document.getElementById('water').value) || 1;
+      const flour = parseFloat(document.getElementById('flour').value) || 1;
+      const temp = parseFloat(document.getElementById('temp').value) || 23;
+      const cal = parseFloat(document.getElementById('cal').value) || 1.0;
+
+      // 1. Ratio & Hydration factors
+      const ratio = flour / mother;
+      const hydration = water / flour;
+      const hydrationFactor = 1 / (0.85 + (0.15 * hydration)); // Stiffer = slightly slower
+
+      // 2. Temperature scaling (Q10 ~ 2.2 for yeast, ~ 2.5 for LAB)
+      const baseTime = 4.5 * cal * hydrationFactor;
+      const yeastTempFactor = Math.pow(2.2, (24 - temp) / 10);
+      const labTempFactor = Math.pow(2.5, (24 - temp) / 10);
+
+      // Logarithmic scaling for inoculation ratio
+      const cycleMultiplier = 1 + (Math.log2(Math.max(ratio, 0.5)) * 0.42);
+
+      // Estimated peak hours
+      const peakHours = baseTime * cycleMultiplier * yeastTempFactor;
+      const labMidpoint = peakHours * 1.15 * (labTempFactor / yeastTempFactor);
+
+      // Update summary banner
+      const hours = Math.floor(peakHours);
+      const mins = Math.round((peakHours - hours) * 60);
+      const autolyseStart = Math.max(0, peakHours - 1.0);
+      const aHours = Math.floor(autolyseStart);
+      const aMins = Math.round((autolyseStart - aHours) * 60);
+
+      document.getElementById('summary').innerHTML = `
+        <strong>Estimated Peak Activity:</strong> ~${hours}h ${mins}m after feeding (1:${ratio.toFixed(1)}:${(water/mother).toFixed(1)} at ${temp}°C)<br>
+        <strong>Suggested Autolyse Start:</strong> ~${aHours}h ${aMins}m after feeding (for a 1-hour autolyse)
+      `;
+
+      // Generate time-series data up to 1.5x peak time
+      const maxTime = Math.ceil(peakHours * 1.5);
+      const labels = [];
+      const yeastData = [];
+      const bacteriaData = [];
+
+      for (let t = 0; t <= maxTime; t += 0.5) {
+        labels.push(t + 'h');
+
+        const sigma = peakHours * 0.35;
+        let yeastActivity = 100 * Math.exp(-Math.pow(t - peakHours, 2) / (2 * Math.pow(sigma, 2)));
+        if (t > peakHours) {
+          yeastActivity = 100 * Math.exp(-Math.pow(t - peakHours, 2) / (2 * Math.pow(sigma * 1.4, 2)));
+        }
+        yeastData.push(yeastActivity.toFixed(1));
+
+        const steepness = 5 / peakHours;
+        const acidLevel = 100 / (1 + Math.exp(-steepness * (t - labMidpoint)));
+        bacteriaData.push(acidLevel.toFixed(1));
+      }
+
+      renderChart(labels, yeastData, bacteriaData);
+    }
+
+    function renderChart(labels, yeastData, bacteriaData) {
+      const ctx = document.getElementById('fermentChart').getContext('2d');
+      if (chart) chart.destroy();
+
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Yeast Activity / Volume Rise (%)',
+              data: yeastData,
+              borderColor: '#d97706',
+              backgroundColor: 'rgba(217, 119, 6, 0.1)',
+              fill: true,
+              tension: 0.4
+            },
+            {
+              label: 'Bacterial Acidity / Sourness (%)',
+              data: bacteriaData,
+              borderColor: '#0284c7',
+              backgroundColor: 'rgba(2, 132, 199, 0.05)',
+              fill: false,
+              tension: 0.4
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: { min: 0, max: 105, title: { display: true, text: 'Relative Activity (%)' } },
+            x: { title: { display: true, text: 'Time Since Feeding' } }
+          }
+        }
+      });
+    }
+
+    // Debounce wrapper to prevent lag on every keystroke
+    let debounceTimer;
+    document.querySelectorAll('input').forEach(input => {
+      input.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(calculateCurves, 250);
+      });
+    });
+
+    calculateCurves();
+  </script>
+</body>
+</html>
