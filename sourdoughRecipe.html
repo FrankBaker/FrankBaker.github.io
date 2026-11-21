@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wholewheat Sourdough Calculator · 75% Hydration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f7f2ea; --card:#fffdf9; --ink:#2b2420; --muted:#7a6d62; --line:#e7ddd0;
+    --crust:#a0522d; --crust-dark:#7c3d1f; --crumb:#f1e4cf; --accent:#5b7a3a; --hl:#fff4dc;
+    --radius:14px; --shadow:0 1px 2px rgba(60,40,20,.06),0 6px 20px rgba(60,40,20,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);font:15px/1.5 Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+  h1,h2,h3{font-family:Fraunces,Georgia,serif;font-weight:700;margin:0;letter-spacing:-.01em}
+  .wrap{max-width:1240px;margin:0 auto;padding:28px 20px 60px}
+
+  header.hero{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:22px}
+  .hero h1{font-size:clamp(26px,3.4vw,38px);color:var(--crust-dark)}
+  .hero .sub{color:var(--muted);margin-top:4px}
+  .hero .note{background:var(--hl);border:1px solid #f0dfb8;border-radius:10px;padding:8px 12px;font-size:13.5px;color:#6b5420;max-width:460px}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap}
+  button{font:inherit;font-size:13.5px;font-weight:500;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 14px;border-radius:9px;cursor:pointer;transition:.15s}
+  button:hover{border-color:var(--crust);color:var(--crust-dark)}
+  button.primary{background:var(--crust);border-color:var(--crust);color:#fff}
+  button.primary:hover{background:var(--crust-dark);color:#fff}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px}
+  .card h2{font-size:19px;margin-bottom:4px}
+  .card .hint{color:var(--muted);font-size:13px;margin:0 0 14px}
+
+  /* settings + KPIs */
+  .settings{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+  .field label{display:block;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px}
+  .inp{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden;transition:.15s}
+  .inp:focus-within{border-color:var(--crust);box-shadow:0 0 0 3px rgba(160,82,45,.12)}
+  .inp input{border:0;outline:0;font:inherit;font-size:17px;font-weight:600;padding:9px 10px;width:100%;min-width:0;background:transparent;color:var(--ink)}
+  .inp span{padding:0 11px;color:var(--muted);font-size:13px}
+  .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:18px}
+  .kpi{background:var(--crumb);border-radius:11px;padding:12px 14px}
+  .kpi .k{font-size:12px;color:var(--muted);font-weight:500}
+  .kpi .v{font-family:Fraunces,Georgia,serif;font-size:24px;font-weight:700;color:var(--crust-dark);line-height:1.2}
+  .kpi .v small{font-family:Inter,sans-serif;font-size:13px;font-weight:500;color:var(--muted)}
+
+  .top{display:grid;grid-template-columns:1.1fr 1fr;gap:18px;margin-bottom:18px}
+  .grid3{display:grid;grid-template-columns:1.15fr .95fr 1fr;gap:18px;align-items:start}
+
+  table{width:100%;border-collapse:collapse}
+  th{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;text-align:left;padding:0 6px 8px;border-bottom:1px solid var(--line)}
+  th.num,td.num{text-align:right}
+  td{padding:6px;border-bottom:1px solid #f2ebe1;vertical-align:middle}
+  tr:last-child td{border-bottom:0}
+  tr.total td{border-top:2px solid var(--ink);border-bottom:0;font-weight:700;padding-top:9px}
+  td.w{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+  td.w .g{color:var(--muted);font-weight:400;margin-left:2px}
+  tr.zero td{opacity:.45}
+  input.name{border:1px solid transparent;border-radius:7px;font:inherit;padding:4px 6px;width:100%;background:transparent;color:var(--ink)}
+  input.name:hover{border-color:var(--line)}
+  input.name:focus{outline:0;border-color:var(--crust);background:#fff}
+  .pct{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:8px;background:#fff;width:92px}
+  .pct:focus-within{border-color:var(--crust)}
+  .pct input{border:0;outline:0;font:inherit;font-weight:600;width:100%;min-width:0;padding:5px 2px 5px 8px;text-align:right;background:transparent;color:var(--ink)}
+  .pct span{padding:0 8px 0 2px;color:var(--muted);font-size:12.5px}
+  .sub-h{font-family:Fraunces,Georgia,serif;font-size:15.5px;margin:18px 0 6px;color:var(--crust-dark)}
+  .sub-h:first-of-type{margin-top:0}
+
+  .main-card{border:2px solid var(--crust);background:linear-gradient(180deg,#fffaf2,#fffdf9)}
+  .badge{display:inline-block;background:var(--crust);color:#fff;font-size:11.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;border-radius:20px;padding:3px 10px;margin-bottom:8px}
+  .main-card td.w{font-size:17px}
+  .main-card tr.lev td{background:var(--hl)}
+  .extra{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line);font-size:13.5px;color:var(--muted);display:flex;justify-content:space-between;gap:10px;align-items:center}
+  .extra b{color:var(--ink)}
+
+  /* method */
+  .method{display:grid;grid-template-columns:1.2fr 1fr;gap:18px;margin-top:18px}
+  ol.steps{list-style:none;margin:0;padding:0;counter-reset:s}
+  ol.steps li{display:flex;gap:12px;align-items:flex-start;padding:9px 0;border-bottom:1px solid #f2ebe1;cursor:pointer}
+  ol.steps li:last-child{border-bottom:0}
+  ol.steps li .box{flex:0 0 22px;height:22px;border:2px solid var(--line);border-radius:6px;display:grid;place-items:center;margin-top:1px;transition:.15s;background:#fff}
+  ol.steps li.done .box{background:var(--accent);border-color:var(--accent)}
+  ol.steps li.done .box::after{content:"";width:6px;height:11px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg) translate(-1px,-1px)}
+  ol.steps li.done .txt{color:var(--muted);text-decoration:line-through}
+  ol.steps li.wait .txt{color:var(--muted);font-style:italic}
+  ol.steps li .phase{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--crust);font-weight:600;margin-bottom:1px}
+  .w-in{font-weight:600;color:var(--crust-dark)}
+  .tabs{display:flex;gap:6px;margin-bottom:12px;background:var(--crumb);padding:4px;border-radius:10px;width:max-content;max-width:100%}
+  .tabs button{border:0;background:transparent;padding:6px 12px}
+  .tabs button.on{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.08);color:var(--crust-dark)}
+  .look{background:var(--hl);border-radius:10px;padding:10px 12px;font-size:13.5px;margin-top:14px;color:#5d4a1c}
+  .split{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:2px 0 12px}
+  .split .field label{font-size:10.5px}
+  .split .inp input{font-size:14px;padding:6px 8px}
+  footer{margin-top:28px;text-align:center;color:var(--muted);font-size:12.5px}
+
+  @media (max-width:1020px){.grid3{grid-template-columns:1fr 1fr}.main-card{grid-column:1/-1;order:-1}.top,.method{grid-template-columns:1fr}}
+  @media (max-width:640px){.grid3{grid-template-columns:1fr}.settings{grid-template-columns:1fr 1fr}.kpis{grid-template-columns:1fr 1fr}.wrap{padding:18px 12px 40px}}
+  @media print{
+    body{background:#fff}.toolbar,.tabs,.no-print{display:none!important}
+    .card{box-shadow:none;break-inside:avoid}.grid3{grid-template-columns:1fr 1fr 1fr}.top,.method{grid-template-columns:1fr 1fr}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div>
+      <h1 id="title">Wholewheat Sourdough · 1000 g</h1>
+      <div class="sub" id="subt">WW Dough Calc 30-06-26 · 75% hydration</div>
+    </div>
+    <div class="toolbar">
+      <button onclick="window.print()">Print</button>
+      <button onclick="resetAll()">Reset to recipe</button>
+    </div>
+  </header>
+
+  <section class="top">
+    <div class="card">
+      <h2>Settings</h2>
+      <p class="hint">Set the dough size and levain. Every weight below updates as you type.</p>
+      <div class="settings">
+        <div class="field"><label for="doughWeight">Dough weight</label>
+          <div class="inp"><input id="doughWeight" type="number" min="0" step="10" inputmode="decimal"><span>g</span></div></div>
+        <div class="field"><label for="levainPct">Levain (of flour)</label>
+          <div class="inp"><input id="levainPct" type="number" min="0" step="1" inputmode="decimal"><span>%</span></div></div>
+        <div class="field"><label for="hydration">Hydration</label>
+          <div class="inp"><input id="hydration" type="number" min="0" step="1" inputmode="decimal"><span>%</span></div></div>
+        <div class="field"><label for="scale">Scale</label>
+          <div class="inp"><input id="scale" type="number" min="0" step="0.1" inputmode="decimal"><span>×</span></div></div>
+      </div>
+      <div class="kpis">
+        <div class="kpi"><div class="k">Total water</div><div class="v" id="kHyd">–</div></div>
+        <div class="kpi"><div class="k">Total flour</div><div class="v" id="kFlour">–</div></div>
+        <div class="kpi"><div class="k">Pre-fermented flour</div><div class="v" id="kPff">–</div></div>
+        <div class="kpi"><div class="k">Final dough</div><div class="v" id="kTotal">–</div></div>
+      </div>
+    </div>
+
+    <div class="card main-card">
+      <span class="badge">Use the weights from here!</span>
+      <h2>Main dough recipe</h2>
+      <p class="hint">What goes in the bowl on bake day. Flour and water from the levain are already taken off.</p>
+      <table>
+        <thead><tr><th>Ingredient</th><th class="num">Weight</th></tr></thead>
+        <tbody id="mainBody"></tbody>
+      </table>
+      <div class="extra">
+        <span>Optional instant yeast at <span class="pct" style="width:86px"><input id="yeastPct" type="number" step="0.01" min="0"><span>%</span></span></span>
+        <b id="yeastG">–</b>
+      </div>
+    </div>
+  </section>
+
+  <section class="grid3">
+    <div class="card">
+      <h2>Total ingredients</h2>
+      <p class="hint">The overall formula as baker's percentages (flours add up to 100%). Names can be edited.</p>
+      <table>
+        <thead><tr><th>Ingredient</th><th class="num">Baker's %</th><th class="num">Weight</th></tr></thead>
+        <tbody id="totalBody"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Ferments</h2>
+      <p class="hint">How the levain is built, and the ripe starter that goes into it.</p>
+      <h3 class="sub-h">Levain</h3>
+      <table>
+        <thead><tr><th>Ingredient</th><th class="num">Baker's %</th><th class="num">Weight</th></tr></thead>
+        <tbody id="levBody"></tbody>
+      </table>
+      <h3 class="sub-h">Ripe starter</h3>
+      <table>
+        <thead><tr><th>Ingredient</th><th class="num">Baker's %</th><th class="num">Weight</th></tr></thead>
+        <tbody id="rsBody"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Water schedule</h2>
+      <p class="hint">How the main-dough water is added across the mix.</p>
+      <div class="split">
+        <div class="field"><label>With starter</label><div class="inp"><input id="wStarter" type="number" min="0" step="5"><span>g</span></div></div>
+        <div class="field"><label>With salt</label><div class="inp"><input id="wSalt" type="number" min="0" step="5"><span>g</span></div></div>
+        <div class="field"><label>Autolyse</label><div class="inp"><input id="wAuto" type="text" readonly tabindex="-1"><span>g</span></div></div>
+      </div>
+      <table>
+        <tbody id="waterBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="method">
+    <div class="card">
+      <h2>Method</h2>
+      <p class="hint">Tap a step to tick it off. Ticks are saved in this browser.</p>
+      <ol class="steps" id="steps"></ol>
+      <div class="look"><b>Bulk is done when:</b> the top is domed with bubbles on it. Give the bowl a shake and it should wobble like a big marshmallow, but be stringy when scooped or poured out.</div>
+    </div>
+    <div class="card">
+      <h2>Bake</h2>
+      <p class="hint">Two ways to bake: the classic lidded pot or the upside-down pot.</p>
+      <div class="tabs"><button class="on" data-b="pot">Pot with lid</button><button data-b="ud">Upside-down pot</button></div>
+      <ol class="steps" id="bake"></ol>
+      <div class="no-print" style="margin-top:14px"><button onclick="clearTicks()">Clear all ticks</button></div>
+    </div>
+  </section>
+
+  <footer>Recreated from the sheet “WW Dough Calc 30-06-26 112 75%” in Sourdough_Calculator.xlsx</footer>
+</div>
+
+<script>
+const DEFAULTS = {
+  doughWeight: 1000, levainPct: 15, scale: 1, yeastPct: 0.07,
+  wStarter: 50, wSalt: 0,
+  ings: [
+    {k:'f1',  name:'Strong white flour', pct:50,  type:'flour'},
+    {k:'f2',  name:'Wholewheat',         pct:50,  type:'flour'},
+    {k:'f3',  name:'Flour 3',            pct:0,   type:'flour'},
+    {k:'water',name:'Water',             pct:75,  type:'water'},
+    {k:'salt',name:'Salt',               pct:2,   type:'other'},
+    {k:'oil', name:'Olive oil',          pct:0,   type:'other'},
+    {k:'inc2',name:'Inclusion 2',        pct:0,   type:'other'},
+    {k:'inc3',name:'Inclusion 3',        pct:0,   type:'other'}
+  ],
+  lev: {flour:100, water:100, starter:20},   // levain build, baker's %
+  rs:  {flour:100, water:100}                // ripe starter, baker's %
+};
+const KEY = 'ww-sourdough-75';
+let S = load();
+
+function load(){
+  try{ const s = JSON.parse(localStorage.getItem(KEY)); if(s && s.ings) return s; }catch(e){}
+  return structuredClone({...DEFAULTS, ticks:{}});
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+function resetAll(){ S = structuredClone({...DEFAULTS, ticks:{}}); save(); build(); }
+function clearTicks(){ S.ticks = {}; save(); renderSteps(); }
+
+const n = v => (isFinite(v) ? v : 0);
+const g = (v,d=0) => `${n(v).toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d})}<span class="g">g</span>`;
+const pc = v => `${(+n(v).toFixed(1)).toLocaleString()}%`;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ing = k => S.ings.find(i => i.k === k);
+const flourPct = () => ['f1','f2','f3'].reduce((a,k) => a + n(+ing(k).pct), 0);
+
+/* ---- calculation: mirrors the spreadsheet formulas ---- */
+function calc(){
+  const sumPct = S.ings.reduce((a,i) => a + n(+i.pct), 0);                 // E39
+  const w = {};
+  S.ings.forEach(i => w[i.k] = sumPct ? S.doughWeight / sumPct * n(+i.pct) * S.scale : 0); // G col
+  const flour = w.f1 + w.f2 + w.f3;
+  const levTotal = flour * S.levainPct / 100;                               // U31
+  const levSum = S.lev.flour + S.lev.water + S.lev.starter;                 // M39
+  const L = {
+    flour:   levSum ? levTotal / levSum * S.lev.flour   : 0,                // O31
+    water:   levSum ? levTotal / levSum * S.lev.water   : 0,                // O33
+    starter: levSum ? levTotal / levSum * S.lev.starter : 0                 // O35
+  };
+  const rsSum = S.rs.flour + S.rs.water;                                    // M25
+  const R = {
+    flour: rsSum ? L.starter / rsSum * S.rs.flour : 0,                      // O21
+    water: rsSum ? L.starter / rsSum * S.rs.water : 0                       // O23
+  };
+  const pff = L.flour + R.flour;                                            // E13
+  const main = {
+    f1: w.f1 - L.flour - R.flour,                                           // U21
+    f2: w.f2, f3: w.f3,
+    water: w.water - L.water - R.water,                                     // U27
+    salt: w.salt, levain: levTotal, oil: w.oil, inc2: w.inc2, inc3: w.inc3
+  };
+  const mainTotal = Object.values(main).reduce((a,b)=>a+b,0);
+  const flourPct = ing('f1').pct*1 + ing('f2').pct*1 + ing('f3').pct*1;
+  return {sumPct, w, flour, levTotal, levSum, L, rsSum, R, pff, main, mainTotal,
+          hyd: flourPct ? ing('water').pct / flourPct * 100 : 0,
+          pffPct: flour ? pff / flour * 100 : 0,
+          yeast: (w.f1 + w.f2) * S.yeastPct / 100};
+}
+
+/* ---- rendering ---- */
+function pctInput(path, val){
+  return `<span class="pct"><input type="number" step="1" min="0" data-p="${path}" value="${val}"><span>%</span></span>`;
+}
+function build(){
+  ['doughWeight','levainPct','scale','yeastPct','wStarter','wSalt'].forEach(id => {
+    const el = document.getElementById(id); el.value = S[id];
+    el.oninput = () => { S[id] = parseFloat(el.value) || 0; save(); update(); };
+  });
+  const hy = document.getElementById('hydration');
+  hy.oninput = () => {
+    const fp = flourPct(); const v = parseFloat(hy.value) || 0;
+    ing('water').pct = +(v * (fp || 100) / 100).toFixed(2); save(); update();
+  };
+  document.getElementById('totalBody').innerHTML = S.ings.map((i,idx) => `
+    <tr data-k="${i.k}"><td><input class="name" data-n="${idx}" value="${esc(i.name)}"></td>
+    <td class="num">${pctInput('ings.'+idx, i.pct)}</td><td class="num w" data-w="${i.k}"></td></tr>`).join('') +
+    `<tr class="total"><td>Total weight</td><td class="num" id="sumPct"></td><td class="num w" id="sumW"></td></tr>`;
+  document.getElementById('levBody').innerHTML = `
+    <tr><td data-lname="f1"></td><td class="num">${pctInput('lev.flour',S.lev.flour)}</td><td class="num w" id="L_flour"></td></tr>
+    <tr><td>Water</td><td class="num">${pctInput('lev.water',S.lev.water)}</td><td class="num w" id="L_water"></td></tr>
+    <tr><td>Ripe starter</td><td class="num">${pctInput('lev.starter',S.lev.starter)}</td><td class="num w" id="L_starter"></td></tr>
+    <tr class="total"><td>Total levain</td><td class="num" id="L_pct"></td><td class="num w" id="L_tot"></td></tr>`;
+  document.getElementById('rsBody').innerHTML = `
+    <tr><td>Flour</td><td class="num">${pctInput('rs.flour',S.rs.flour)}</td><td class="num w" id="R_flour"></td></tr>
+    <tr><td>Water</td><td class="num">${pctInput('rs.water',S.rs.water)}</td><td class="num w" id="R_water"></td></tr>
+    <tr class="total"><td>Total ripe starter</td><td class="num" id="R_pct"></td><td class="num w" id="R_tot"></td></tr>`;
+
+  document.querySelectorAll('input[data-p]').forEach(el => el.oninput = () => {
+    const [a,b] = el.dataset.p.split('.'); const v = parseFloat(el.value) || 0;
+    if(a === 'ings') S.ings[+b].pct = v; else S[a][b] = v;
+    save(); update();
+  });
+  document.querySelectorAll('input[data-n]').forEach(el => el.oninput = () => {
+    S.ings[+el.dataset.n].name = el.value; save(); update();
+  });
+  update();
+}
+
+function update(){
+  const c = calc(), $ = id => document.getElementById(id);
+  // title
+  const allFlour = ing('f1').pct + ing('f2').pct + ing('f3').pct;
+  $('title').textContent = `Wholewheat Sourdough · ${Math.round(S.doughWeight*S.scale).toLocaleString()} g`;
+  // keep the two linked inputs in sync (don't overwrite the one being typed in)
+  const hyEl = $('hydration'), wIdx = S.ings.findIndex(i => i.k === 'water');
+  const wEl = document.querySelector(`input[data-p="ings.${wIdx}"]`);
+  if(document.activeElement !== hyEl) hyEl.value = +c.hyd.toFixed(1);
+  if(wEl && document.activeElement !== wEl) wEl.value = +(+ing('water').pct).toFixed(2);
+  // KPIs
+  $('kHyd').innerHTML = `${Math.round(c.w.water)}<small> g</small>`;
+  $('subt').textContent = `WW Dough Calc 30-06-26 · ${+c.hyd.toFixed(1)}% hydration`;
+  $('kFlour').innerHTML = `${Math.round(c.flour)}<small> g</small>`;
+  $('kPff').innerHTML = `${Math.round(c.pff)}<small> g · ${pc(c.pffPct)} PFF</small>`;
+  $('kTotal').innerHTML = `${Math.round(c.mainTotal)}<small> g</small>`;
+  // total ingredients
+  S.ings.forEach(i => {
+    const td = document.querySelector(`[data-w="${i.k}"]`); td.innerHTML = g(c.w[i.k]);
+    td.parentElement.classList.toggle('zero', !(+i.pct));
+  });
+  $('sumPct').textContent = pc(c.sumPct); $('sumW').innerHTML = g(Object.values(c.w).reduce((a,b)=>a+b,0));
+  // ferments
+  document.querySelector('[data-lname="f1"]').textContent = ing('f1').name;
+  $('L_flour').innerHTML = g(c.L.flour); $('L_water').innerHTML = g(c.L.water); $('L_starter').innerHTML = g(c.L.starter);
+  $('L_pct').textContent = pc(c.levSum); $('L_tot').innerHTML = g(c.levTotal);
+  $('R_flour').innerHTML = g(c.R.flour); $('R_water').innerHTML = g(c.R.water);
+  $('R_pct').textContent = pc(c.rsSum); $('R_tot').innerHTML = g(c.L.starter);
+  // main dough
+  const rows = [
+    ['f1', ing('f1').name], ['f2', ing('f2').name], ['f3', ing('f3').name], ['water','Water'], ['salt', ing('salt').name],
+    ['levain','Levain'], ['oil', ing('oil').name], ['inc2', ing('inc2').name], ['inc3', ing('inc3').name]
+  ];
+  $('mainBody').innerHTML = rows.filter(([k]) => k==='levain' || Math.abs(c.main[k]) > 0.0001 || ['f1','water','salt'].includes(k))
+    .map(([k,name]) => `<tr class="${k==='levain'?'lev':''}"><td>${esc(name)}</td><td class="num w">${g(c.main[k])}</td></tr>`).join('') +
+    `<tr class="total"><td>Total weight</td><td class="num w">${g(c.mainTotal)}</td></tr>`;
+  $('yeastG').innerHTML = g(c.yeast,1);
+  // water schedule
+  const mw = c.main.water, auto = mw - S.wStarter - S.wSalt;
+  $('wAuto').value = Math.round(auto);
+  $('waterBody').innerHTML = `
+    <tr><td>Autolyse (flour + water)</td><td class="num w">${g(auto)}</td></tr>
+    <tr><td>With starter</td><td class="num w">${g(S.wStarter)}</td></tr>
+    <tr><td>With salt (the rest)</td><td class="num w">${g(S.wSalt)}</td></tr>
+    <tr class="total"><td>Main-dough water</td><td class="num w">${g(mw)}</td></tr>`;
+  window._c = c; renderSteps();
+}
+
+function renderSteps(){
+  const c = window._c; if(!c) return;
+  const W = v => `<span class="w-in">${Math.round(v)} g</span>`;
+  const auto = c.main.water - S.wStarter - S.wSalt;
+  const steps = [
+    ['Mix', `Mix flour and water only, to a ‘shaggy mass’ — ${W(auto)} water (hold back ${W(S.wStarter + S.wSalt)}).`],
+    ['Mix', `45 min autolyse.`, 1],
+    ['Mix', `Add the active starter (levain ${W(c.levTotal)}) and ${W(S.wStarter)} water.`],
+    ['Mix', `Add salt (${W(c.main.salt)})${S.wSalt ? ' and the remaining ' + W(S.wSalt) + ' water' : ' and any remaining water'}.`],
+    ['Mix', `10 mins in the KitchenAid.`],
+    ['Bulk', `30 mins.`, 1], ['Bulk', `Stretch and fold.`],
+    ['Bulk', `30 mins.`, 1], ['Bulk', `Stretch and fold.`],
+    ['Bulk', `30 mins (around 20:30).`, 1], ['Bulk', `Stretch and fold.`],
+    ['Bulk', `Leave dough to bulk ferment.`, 1],
+    ['Shape', `Preshape on a dry counter with scraper and hand (around 06:00).`],
+    ['Shape', `15 minutes uncovered to develop a slight skin.`, 1],
+    ['Shape', `Shape and into the banneton.`],
+    ['Proof', `Cover and into the fridge for 10 hrs+ for flavour and gluten breakdown.`, 1]
+  ];
+  const bakes = {
+    pot: [
+      'Heat the black pot at 240°C for 45 mins, with fan.',
+      'Score.',
+      'Bake with lid on for 30 mins at 240°C, no fan.',
+      'Bake with lid off for 15 mins at 220°C, no fan.',
+      'Check for a hollow sound — bake more at 180°C if needed.'
+    ],
+    ud: [
+      'Heat the black pot without lid at 240°C for 30 mins, with fan.',
+      'Bake with upside-down pot for 10 mins at 240°C, then score!',
+      'Bake with upside-down pot for 20 mins at 240°C.',
+      'Bake with upside-down pot off for 10 mins at 220°C.',
+      'Check for a hollow sound — bake more at 180°C if needed.'
+    ]
+  };
+  S.ticks = S.ticks || {};
+  const li = (id, html, phase, wait) =>
+    `<li data-t="${id}" class="${S.ticks[id]?'done':''} ${wait?'wait':''}"><span class="box"></span><span class="txt">${phase?`<span class="phase">${phase}</span>`:''}${html}</span></li>`;
+  let last = '';
+  document.getElementById('steps').innerHTML = steps.map(([p,t,w],i) => { const ph = p!==last ? p : ''; last = p; return li('s'+i, t, ph, w); }).join('');
+  const mode = S.bake || 'pot';
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.b === mode));
+  document.getElementById('bake').innerHTML = bakes[mode].map((t,i) => li(mode+i, t)).join('');
+  document.querySelectorAll('li[data-t]').forEach(el => el.onclick = () => {
+    S.ticks[el.dataset.t] = !S.ticks[el.dataset.t]; save(); el.classList.toggle('done');
+  });
+}
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => { S.bake = b.dataset.b; save(); renderSteps(); });
+
+build();
+</script>
+</body>
+</html>
