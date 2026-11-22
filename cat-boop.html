@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cat Boop">
+<title>Cat Boop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: playful, warm, toy-like.
+   IDEA: a backyard full of cardboard boxes — cats love boxes, so they pop out of them.
+   PICTURE: the 3x3 grid of boxes on the lawn is the whole first screen.
+   COLOUR and TYPE: sky blue over grass green, kraft-brown boxes, pink accent; Fredoka.
+   LAYOUT: compact HUD on top, board centred, overlays for start and end. */
+:root{color-scheme:light dark;
+  --sky:light-dark(#8ed6ff,#1b1f4a);--sky2:light-dark(#c9ecff,#2a2f6a);
+  --grass:light-dark(#7ccf6a,#1f5a3a);--grass2:light-dark(#5db454,#174a2f);
+  --ink:light-dark(#23223a,#f4f1ff);--card:light-dark(#ffffffe0,#15183ae0);
+  --pink:#ff5d8f;--gold:#ffc21a;--kraft:#d4924f;--kraft2:#b67436;--kraftDark:#8f5726}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{margin:0;color:var(--ink);font:600 16px/1.4 Fredoka,ui-rounded,system-ui,sans-serif;overflow:hidden;
+  overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation;
+  background:linear-gradient(var(--sky2),var(--sky) 26%,var(--sky) 30%,var(--grass) 30%,var(--grass2));
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+.app{height:100%;display:flex;flex-direction:column;align-items:center;gap:10px;padding:10px 12px 14px}
+header{width:100%;max-width:480px;display:flex;align-items:center;justify-content:space-between}
+h1{margin:0;font-size:32px;line-height:1.05;font-weight:700;letter-spacing:.5px}
+h1 span{color:var(--pink)}
+.icon{width:44px;height:44px;border:0;border-radius:50%;background:var(--card);color:var(--ink);font:inherit;font-size:20px;display:grid;place-items:center;cursor:pointer}
+.hud{width:100%;max-width:480px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center}
+.pill{background:var(--card);border-radius:999px;padding:6px 14px;text-align:center;box-shadow:0 2px 0 #0002}
+.pill small{display:block;font-size:13px;font-weight:500;opacity:.7;line-height:1}
+.pill b{font-size:24px;line-height:1.1;font-variant-numeric:tabular-nums}
+.timebar{height:18px;border-radius:999px;background:var(--card);overflow:hidden;box-shadow:0 2px 0 #0002}
+.timebar i{display:block;height:100%;width:100%;background:linear-gradient(90deg,var(--pink),#ff9bbb);border-radius:999px;transform-origin:left;transition:background .3s}
+.timebar.low i{background:linear-gradient(90deg,#ff3b3b,#ff8a5c)}
+#combo{color:var(--pink)}
+.board{--w:min(94vw,480px,calc((100svh - 210px) / 1.12));width:var(--w);margin:auto 0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:calc(var(--w) * .035);touch-action:none}
+.slot{position:relative;aspect-ratio:1/1.08;cursor:pointer}
+.slot::after{content:"";position:absolute;left:4%;right:4%;bottom:-5%;height:12%;border-radius:50%;background:#0003;filter:blur(3px);z-index:0}
+.back,.peek,.box{position:absolute;left:0;right:0;pointer-events:none}
+.back{top:30%;height:28%;z-index:1}
+.peek{left:7%;right:7%;top:0;height:62%;overflow:hidden;z-index:2}
+.box{bottom:0;height:42%;z-index:3}
+.back svg,.box svg,.critter svg{display:block;width:100%;height:100%}
+.critter{position:absolute;inset:0;transform:translateY(104%);transition:transform .14s ease-out}
+.slot.up .critter{transform:translateY(0)}
+.slot.hit .critter{transform:translateY(0) scale(.94,.88);transform-origin:bottom;transition:transform .08s}
+.ex,.stars{display:none}.slot.hit .ex,.slot.hit .stars{display:inline}.slot.hit .eo{display:none}
+.stars{animation:spin .6s linear infinite;transform-origin:50px 24px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.pop{position:absolute;left:50%;top:6%;z-index:5;transform:translateX(-50%);font-size:clamp(16px,5vw,22px);font-weight:700;white-space:nowrap;pointer-events:none;
+  color:#fff;-webkit-text-stroke:5px var(--pink);paint-order:stroke fill;animation:pop .7s ease-out forwards}
+.pop.bad{-webkit-text-stroke-color:#6b4a2e}.pop.gold{-webkit-text-stroke-color:#d68a00}
+@keyframes pop{0%{opacity:0;transform:translate(-50%,10px) scale(.6)}20%{opacity:1;transform:translate(-50%,0) scale(1.15)}100%{opacity:0;transform:translate(-50%,-34px) scale(1)}}
+.ripple{position:absolute;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;border:3px solid #fff;z-index:6;pointer-events:none;animation:rip .35s ease-out forwards}
+@keyframes rip{from{transform:scale(.3);opacity:1}to{transform:scale(1.4);opacity:0}}
+.board.shake{animation:shake .3s}
+@keyframes shake{25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-3px)}}
+.overlay{position:fixed;inset:0;z-index:20;display:grid;place-items:center;padding:20px;background:#0006;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.overlay[hidden]{display:none}
+.panel{width:min(100%,380px);background:light-dark(#fff,#1d2150);border-radius:28px;padding:24px 22px;text-align:center;box-shadow:0 8px 0 #0003}
+.panel h2{margin:0 0 6px;font-size:40px;line-height:1.05}
+.panel h2 span{color:var(--pink)}
+.panel p{margin:6px 0 14px;font-weight:500;font-size:17px}
+.legend{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:4px 0 18px}
+.legend div{font-size:14px;font-weight:600}
+.legend svg{width:64px;height:64px;display:block;margin:0 auto 2px}
+.big{display:block;width:100%;min-height:56px;border:0;border-radius:999px;background:var(--pink);color:#fff;font:700 22px Fredoka,system-ui,sans-serif;box-shadow:0 5px 0 #c93468;cursor:pointer}
+.big:active{transform:translateY(3px);box-shadow:0 2px 0 #c93468}
+.big:focus-visible,.icon:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0 18px}
+.stats div{background:light-dark(#f3f0ff,#2a2f6a);border-radius:16px;padding:8px 4px;font-size:13px;font-weight:500}
+.stats b{display:block;font-size:24px;font-weight:700}
+.final{font-size:64px;line-height:1;font-weight:700;color:var(--pink);font-variant-numeric:tabular-nums}
+.newbest{color:#d68a00;font-weight:700;min-height:1.4em}
+.note{font-size:13px;opacity:.65;font-weight:500;margin-top:12px}
+@media(prefers-reduced-motion:reduce){.stars,.board.shake{animation:none}.critter{transition-duration:.01s}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Cat <span>Boop</span></h1>
+    <button class="icon" id="mute" aria-label="Sound on">🔊</button>
+  </header>
+  <div class="hud">
+    <div class="pill"><small>Score</small><b id="score">0</b></div>
+    <div class="timebar" id="timebar" aria-label="Time left"><i id="timefill"></i></div>
+    <div class="pill"><small>Combo</small><b id="combo">×1</b></div>
+  </div>
+  <div class="board" id="board"></div>
+</div>
+
+<div class="overlay" id="start">
+  <div class="panel">
+    <h2>Cat <span>Boop</span></h2>
+    <p>Cats keep popping out of their boxes. Tap them to give them a boop before they duck back in.</p>
+    <div class="legend" id="legend"></div>
+    <button class="big" id="go">Start</button>
+    <div class="note" id="bestStart"></div>
+  </div>
+</div>
+
+<div class="overlay" id="end" hidden>
+  <div class="panel">
+    <h2 id="verdict">Nice booping!</h2>
+    <div class="final" id="final">0</div>
+    <div class="newbest" id="newbest"></div>
+    <div class="stats">
+      <div><b id="sHits">0</b>cats booped</div>
+      <div><b id="sCombo">0</b>best streak</div>
+      <div><b id="sAcc">0%</b>accuracy</div>
+    </div>
+    <button class="big" id="again">Play again</button>
+    <div class="note" id="bestEnd"></div>
+  </div>
+</div>
+
+<script>
+{
+const $ = id => document.getElementById(id);
+const ROUND = 45;
+const CATS = [
+  {fur:'#f39a3d',mark:'#d06f1c',paw:'#ffd9b0',pat:'tabby'},
+  {fur:'#9aa3b5',mark:'#6f7891',paw:'#e4e8f0',pat:'tabby'},
+  {fur:'#2f2b36',mark:'#fff',paw:'#fff',pat:'tux',iris:'#f7d64a',whisk:'#fff'},
+  {fur:'#fff7ef',mark:'#f39a3d',paw:'#fff',pat:'calico'},
+  {fur:'#f6d9a8',mark:'#e0b072',paw:'#fff3df',pat:'tabby'}
+];
+const GOLD = {fur:'#ffd23f',mark:'#f0a500',paw:'#fff1b8',pat:'gold'};
+
+const eyesOpen = c => [37,63].map(x =>
+  (c.iris ? `<ellipse cx="${x}" cy="56" rx="7" ry="8.5" fill="${c.iris}"/>` : '') +
+  `<ellipse cx="${x}" cy="56" rx="${c.iris?3:5.5}" ry="7" fill="#2b2233"/><circle cx="${x+2}" cy="53" r="2" fill="#fff"/>`).join('');
+const eyesHit = (stroke) => `<g class="ex" stroke="${stroke}" stroke-width="3" stroke-linecap="round" fill="none"><path d="M31 57q6-8 12 0M57 57q6-8 12 0"/></g>`;
+const stars = `<g class="stars" fill="#ffc21a" stroke="#d68a00" stroke-width="1"><path d="M28 22l2 4 4 1-3 3 1 4-4-2-4 2 1-4-3-3 4-1z"/><path d="M68 18l2 4 4 1-3 3 1 4-4-2-4 2 1-4-3-3 4-1z"/><circle cx="50" cy="12" r="3"/></g>`;
+const paws = p => `<ellipse cx="31" cy="95" rx="12" ry="8" fill="${p}" stroke="#0002"/><ellipse cx="69" cy="95" rx="12" ry="8" fill="${p}" stroke="#0002"/><path d="M27 92v5M35 92v5M65 92v5M73 92v5" stroke="#0003" stroke-width="1.5"/>`;
+
+function catSVG(c){
+  let pat = '';
+  if (c.pat==='tabby') pat = `<path d="M50 31v10M41 33l2.5 8M59 33l-2.5 8" stroke="${c.mark}" stroke-width="3.5" stroke-linecap="round"/><path d="M16 56h8M16 63h7M84 56h-8M84 63h-7" stroke="${c.mark}" stroke-width="3" stroke-linecap="round"/>`;
+  if (c.pat==='tux') pat = `<ellipse cx="50" cy="72" rx="17" ry="13" fill="#fff"/><path d="M50 30l-6 30h12z" fill="#fff"/>`;
+  if (c.pat==='calico') pat = `<ellipse cx="66" cy="45" rx="14" ry="11" fill="${c.mark}"/><ellipse cx="33" cy="40" rx="9" ry="6" fill="#3b3340"/>`;
+  if (c.pat==='gold') pat = `<path d="M50 31v10M41 33l2.5 8M59 33l-2.5 8" stroke="${c.mark}" stroke-width="3.5" stroke-linecap="round"/><path d="M37 31V19l6 6 7-10 7 10 6-6v12z" fill="#ffb800" stroke="#b97700" stroke-width="2" stroke-linejoin="round"/><circle cx="50" cy="24" r="2.2" fill="#ff5d8f"/>`;
+  const sparkle = c.pat==='gold' ? `<path d="M12 30l2 6 6 2-6 2-2 6-2-6-6-2 6-2zM88 74l1.5 4 4 1.5-4 1.5-1.5 4-1.5-4-4-1.5 4-1.5z" fill="#fff"/>` : '';
+  const w = c.whisk || '#2b223399';
+  return `<svg viewBox="0 0 100 100" aria-hidden="true">
+<ellipse cx="50" cy="104" rx="31" ry="22" fill="${c.fur}"/>
+<path d="M20 50L15 13l29 19z" fill="${c.fur}"/><path d="M80 50l5-37-29 19z" fill="${c.fur}"/>
+<path d="M24 41l-2-19 16 12z" fill="#ffb3c4"/><path d="M76 41l2-19-16 12z" fill="#ffb3c4"/>
+<ellipse cx="50" cy="58" rx="35" ry="30" fill="${c.fur}"/>${pat}
+<g class="eo">${eyesOpen(c)}</g>${eyesHit(c.pat==='tux'?'#f7d64a':'#2b2233')}
+<ellipse cx="27" cy="67" rx="6" ry="3.5" fill="#ff8fab" opacity=".55"/><ellipse cx="73" cy="67" rx="6" ry="3.5" fill="#ff8fab" opacity=".55"/>
+<path d="M45.5 64h9l-4.5 5z" fill="#ff7a9c"/>
+<path d="M50 69q-4 5-8 2M50 69q4 5 8 2" stroke="${c.pat==='tux'?'#2b2233':'#2b2233'}" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M10 61l15 2M10 70l15-2M90 61l-15 2M90 70l-15-2" stroke="${w}" stroke-width="1.5" stroke-linecap="round"/>
+${paws(c.paw)}${sparkle}${stars}</svg>`;
+}
+
+function dogSVG(){
+  return `<svg viewBox="0 0 100 100" aria-hidden="true">
+<ellipse cx="50" cy="104" rx="31" ry="22" fill="#c29262"/>
+<ellipse cx="50" cy="56" rx="33" ry="31" fill="#c29262"/>
+<ellipse cx="19" cy="56" rx="10" ry="22" fill="#7a5235" transform="rotate(18 19 56)"/>
+<ellipse cx="81" cy="56" rx="10" ry="22" fill="#7a5235" transform="rotate(-18 81 56)"/>
+<ellipse cx="63" cy="46" rx="10" ry="9" fill="#7a5235" opacity=".6"/>
+<ellipse cx="50" cy="71" rx="17" ry="12" fill="#f1dcc4"/>
+<g class="eo"><circle cx="38" cy="52" r="5" fill="#2b2233"/><circle cx="62" cy="52" r="5" fill="#2b2233"/><circle cx="39.5" cy="50" r="1.7" fill="#fff"/><circle cx="63.5" cy="50" r="1.7" fill="#fff"/></g>
+${eyesHit('#2b2233')}
+<ellipse cx="50" cy="65" rx="6" ry="4.5" fill="#2b2233"/>
+<path d="M50 69v4M50 73q-5 4-9 1M50 73q5 4 9 1" stroke="#2b2233" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M46 76h8v5a4 4 0 0 1-8 0z" fill="#ff7a9c"/>
+${paws('#c29262')}${stars}</svg>`;
+}
+
+const backSVG = `<svg viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M4 100L-2 18 30 0 40 100z" fill="#b67436"/><path d="M96 100l6-82-32-18-10 100z" fill="#b67436"/><path d="M4 100L-2 18 30 0" fill="none" stroke="#8f5726" stroke-width="2"/><path d="M96 100l6-82-32-18" fill="none" stroke="#8f5726" stroke-width="2"/></svg>`;
+const boxSVG = `<svg viewBox="0 0 100 46" preserveAspectRatio="none">
+<defs><linearGradient id="kf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#dc9d5b"/><stop offset="1" stop-color="#c2803f"/></linearGradient></defs>
+<rect x="3" y="0" width="94" height="9" rx="2" fill="#8f5726"/>
+<rect x="5" y="6" width="90" height="40" rx="3" fill="url(#kf)"/>
+<rect x="5" y="6" width="90" height="4" fill="#0002"/>
+<rect x="44" y="6" width="12" height="40" fill="#e9bd85" opacity=".7"/>
+<g fill="#8f5726" opacity=".45"><ellipse cx="24" cy="30" rx="5" ry="4.2"/><circle cx="18.5" cy="23.5" r="2"/><circle cx="22.5" cy="21" r="2"/><circle cx="26.5" cy="21" r="2"/><circle cx="30" cy="23.5" r="2"/></g>
+</svg>`;
+
+// board
+const board = $('board');
+board.innerHTML = Array.from({length:9}, (_, i) =>
+  `<div class="slot" data-i="${i}"><div class="back">${backSVG}</div><div class="peek"><div class="critter"></div></div><div class="box">${boxSVG}</div></div>`).join('');
+const slots = [...board.children].map(el => ({el, critter: el.querySelector('.critter'), state:'idle', kind:null, until:0, ready:0}));
+
+$('legend').innerHTML = [
+  [catSVG(CATS[0]), 'Cat +10'],
+  [catSVG(GOLD), 'Golden +30'],
+  [dogSVG(), 'Puppy −20']
+].map(([s, t]) => `<div>${s}${t}</div>`).join('');
+
+// audio
+let ac = null, muted = false;
+try { muted = localStorage.getItem('catboop-muted') === '1'; } catch(e) {}
+const setMuteIcon = () => { $('mute').textContent = muted ? '🔇' : '🔊'; $('mute').setAttribute('aria-label', muted ? 'Sound off' : 'Sound on'); };
+setMuteIcon();
+function initAudio(){
+  try { if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); } catch(e) {}
+}
+function tone(f1, f2, dur, type='sine', vol=.3, delay=0){
+  if (!ac || muted) return;
+  const t = ac.currentTime + delay, o = ac.createOscillator(), g = ac.createGain();
+  o.type = type; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+  o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + dur + .03);
+}
+const sfx = {
+  boop: () => { tone(760, 320, .12, 'sine', .35); tone(1400, 900, .05, 'triangle', .08); },
+  gold: () => { [880, 1175, 1568].forEach((f, i) => tone(f, f*1.02, .14, 'triangle', .18, i*.07)); },
+  woof: () => { tone(240, 110, .14, 'square', .12); tone(220, 100, .16, 'square', .1, .17); },
+  miss: () => tone(180, 140, .06, 'sine', .12),
+  mew:  () => { tone(620, 980, .1, 'triangle', .07); tone(980, 560, .22, 'triangle', .07, .1); },
+  end:  () => { [523, 659, 784, 1047].forEach((f, i) => tone(f, f, .18, 'triangle', .2, i*.12)); }
+};
+$('mute').addEventListener('click', () => {
+  muted = !muted; setMuteIcon(); initAudio();
+  try { localStorage.setItem('catboop-muted', muted ? '1' : '0'); } catch(e) {}
+});
+
+// state
+let best = 0;
+try { best = +localStorage.getItem('catboop-best') || 0; } catch(e) {}
+const showBest = () => { const t = best ? `Your best: ${best}` : 'No high score yet'; $('bestStart').textContent = t; $('bestEnd').textContent = t; };
+showBest();
+
+let playing = false, time = ROUND, score = 0, combo = 0, bestCombo = 0, hits = 0, taps = 0, spawnIn = 0, last = 0, now = 0;
+const mult = () => Math.min(5, 1 + Math.floor(combo / 5));
+const lerp = (a, b, t) => a + (b - a) * t;
+
+function hud(){
+  $('score').textContent = score;
+  $('combo').textContent = '×' + mult();
+  $('timefill').style.transform = `scaleX(${Math.max(0, time / ROUND)})`;
+  $('timebar').classList.toggle('low', time < 10);
+}
+
+function popText(slot, text, cls=''){
+  const d = document.createElement('div');
+  d.className = 'pop ' + cls; d.textContent = text;
+  slot.el.appendChild(d); setTimeout(() => d.remove(), 720);
+}
+
+function spawn(progress){
+  const idle = slots.filter(s => s.state === 'idle' && now >= s.ready);
+  const up = slots.filter(s => s.state !== 'idle').length;
+  const maxUp = 1 + Math.floor(progress * 3);
+  if (!idle.length || up >= maxUp) return;
+  const s = idle[Math.floor(Math.random() * idle.length)];
+  const r = Math.random();
+  const elapsed = ROUND - time;
+  s.kind = (elapsed > 5 && r < .13) ? 'dog' : (r > .93 ? 'gold' : 'cat');
+  s.critter.innerHTML = s.kind === 'dog' ? dogSVG() : catSVG(s.kind === 'gold' ? GOLD : CATS[Math.floor(Math.random() * CATS.length)]);
+  const stay = lerp(1.2, .62, progress) * (s.kind === 'gold' ? .8 : 1) * (s.kind === 'dog' ? 1.3 : 1);
+  s.state = 'up'; s.until = now + stay;
+  s.el.classList.remove('hit'); s.el.classList.add('up');
+  if (s.kind === 'gold' || Math.random() < .15) sfx.mew();
+}
+
+function hide(s, delay=0){
+  s.state = 'leaving';
+  setTimeout(() => { s.el.classList.remove('up', 'hit'); s.state = 'idle'; s.ready = now + .25; }, delay);
+}
+
+function tap(s, e){
+  if (!playing) return;
+  initAudio();
+  const rect = s.el.getBoundingClientRect();
+  const rp = document.createElement('div');
+  rp.className = 'ripple'; rp.style.left = (e.clientX - rect.left) + 'px'; rp.style.top = (e.clientY - rect.top) + 'px';
+  s.el.appendChild(rp); setTimeout(() => rp.remove(), 360);
+  taps++;
+  if (s.state !== 'up') { combo = 0; sfx.miss(); hud(); return; }
+  s.state = 'hit'; s.el.classList.add('hit');
+  if (s.kind === 'dog') {
+    score = Math.max(0, score - 20); combo = 0; sfx.woof();
+    popText(s, 'Woof! −20', 'bad');
+    board.classList.remove('shake'); void board.offsetWidth; board.classList.add('shake');
+  } else {
+    hits++; combo++; bestCombo = Math.max(bestCombo, combo);
+    const pts = (s.kind === 'gold' ? 30 : 10) * mult();
+    score += pts;
+    if (s.kind === 'gold') { sfx.gold(); popText(s, `Purrfect! +${pts}`, 'gold'); }
+    else { sfx.boop(); popText(s, `${['Boop!','Bonk!','Mrrp!','Nya!'][Math.floor(Math.random()*4)]} +${pts}`); }
+  }
+  hide(s, 380);
+  hud();
+}
+slots.forEach(s => s.el.addEventListener('pointerdown', e => { e.preventDefault(); tap(s, e); }));
+document.addEventListener('gesturestart', e => e.preventDefault());
+document.addEventListener('dblclick', e => e.preventDefault());
+
+function loop(t){
+  if (!playing) return;
+  const dt = Math.min(.1, (t - last) / 1000 || 0); last = t; now += dt;
+  time -= dt;
+  const progress = Math.min(1, (ROUND - time) / ROUND);
+  spawnIn -= dt;
+  if (spawnIn <= 0) { spawn(progress); spawnIn = lerp(.8, .38, progress) * (.75 + Math.random() * .5); }
+  slots.forEach(s => {
+    if (s.state === 'up' && now > s.until) {
+      if (s.kind !== 'dog') combo = 0;
+      hide(s);
+    }
+  });
+  hud();
+  if (time <= 0) return finish();
+  requestAnimationFrame(loop);
+}
+
+function start(){
+  initAudio();
+  playing = true; time = ROUND; score = 0; combo = 0; bestCombo = 0; hits = 0; taps = 0; spawnIn = .5; now = 0;
+  slots.forEach(s => { s.state = 'idle'; s.ready = 0; s.el.classList.remove('up', 'hit'); });
+  $('start').hidden = true; $('end').hidden = true;
+  hud();
+  last = performance.now();
+  requestAnimationFrame(loop);
+}
+
+function finish(){
+  playing = false; time = 0; hud();
+  slots.forEach(s => s.el.classList.remove('up', 'hit'));
+  sfx.end();
+  const isBest = score > best;
+  if (isBest) { best = score; try { localStorage.setItem('catboop-best', best); } catch(e) {} }
+  showBest();
+  $('final').textContent = score;
+  $('newbest').textContent = isBest && score > 0 ? 'New high score!' : '';
+  $('sHits').textContent = hits;
+  $('sCombo').textContent = bestCombo;
+  $('sAcc').textContent = (taps ? Math.round(hits / taps * 100) : 0) + '%';
+  $('verdict').innerHTML = score >= 900 ? 'Boop <span>legend!</span>' : score >= 500 ? 'Purrfect <span>paws!</span>' : score >= 250 ? 'Nice <span>booping!</span>' : 'The cats <span>win!</span>';
+  setTimeout(() => { $('end').hidden = false; $('again').focus({preventScroll:true}); }, 450);
+}
+
+$('go').addEventListener('click', start);
+$('again').addEventListener('click', start);
+hud();
+}
+</script>
+</body>
+</html>
